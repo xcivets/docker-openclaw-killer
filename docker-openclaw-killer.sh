@@ -72,4 +72,12 @@ echo "================================================="
 echo "    Process Completed. Initiating self-destruct. "
 echo "================================================="
 
-rm -f "$0"
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+DIR_NAME=$(basename "$SCRIPT_DIR")
+
+if [ "$DIR_NAME" = "docker-openclaw-killer" ]; then
+    cd "$SCRIPT_DIR/.." || exit
+    rm -rf "$SCRIPT_DIR"
+else
+    rm -f "$0"
+fi
