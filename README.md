@@ -30,7 +30,7 @@ bash -c "$(curl -fsSL [https://raw.githubusercontent.com/xcivets/docker-openclaw
 如果你希望将脚本下载到本地执行，请按以下步骤操作：
 
 ```bash
-git clone [https://github.com/xcivets/docker-openclaw-killer.git](https://github.com/xcivets/docker-openclaw-killer.git)
+git clone https://github.com/xcivets/docker-openclaw-killer
 ```
 
 ```bash
