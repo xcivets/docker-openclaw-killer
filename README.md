@@ -66,4 +66,3 @@ chmod +x docker-openclaw-killer.sh
 
 脚本运行进入尾声时会打印 `Starting Verification...`。如果卸载操作完美且彻底，在此提示词与最终的 `Process Completed. Initiating self-destruct...` 之间将不会输出任何包含 openclaw 的 Docker 资源信息。针对本地目录的检查如果返回文件或目录不存在的提示，即代表本地文件已成功擦除。执行完毕后，当前目录下的 `.sh` 脚本文件将被自动销毁。
 ```
-
