@@ -5,6 +5,8 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
+TARGET_DIR=${OPENCLAW_DIR:-"$HOME/openclaw"}
+
 echo "================================================="
 echo "      Docker OpenClaw Killer Initiated           "
 echo "================================================="
@@ -46,9 +48,12 @@ else
     echo "    No networks found. Skipping."
 fi
 
-echo ">>> Step 5: Removing local mapping directory (~/openclaw)..."
-if [ -d "$HOME/openclaw" ]; then
-    rm -rf "$HOME/openclaw"
+echo ">>> Step 5: Pruning global unused resources and cache..."
+docker system prune -f
+
+echo ">>> Step 6: Removing local mapping directory ($TARGET_DIR)..."
+if [ -d "$TARGET_DIR" ]; then
+    rm -rf "$TARGET_DIR"
     echo "    Local directory removed."
 else
     echo "    Local directory not found. Skipping."
@@ -73,7 +78,7 @@ echo ">>> Checking networks:"
 docker network ls --filter "name=openclaw"
 
 echo ">>> Checking local directory:"
-ls -ld "$HOME/openclaw" 2>/dev/null || true
+ls -ld "$TARGET_DIR" 2>/dev/null || true
 
 echo " "
 echo "================================================="
@@ -86,7 +91,9 @@ if [ -f "$0" ] && [ "$0" != "bash" ] && [ "$0" != "-c" ]; then
 
     if [ "$DIR_NAME" = "docker-openclaw-killer" ]; then
         cd "$SCRIPT_DIR/.." || exit
-        rm -rf "$SCRIPT_DIR"
+        if [ -n "$SCRIPT_DIR" ] && [ "$SCRIPT_DIR" != "/" ] && [ "$SCRIPT_DIR" != "$HOME" ]; then
+            rm -rf "$SCRIPT_DIR"
+        fi
     else
         rm -f "$0"
     fi
