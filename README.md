@@ -1,5 +1,3 @@
-我已经为你更新了包含你专属 GitHub 仓库地址的完整 README 文件。代码块中没有任何注释，也没有被截断。
-
 ### README.md
 
 ```markdown
