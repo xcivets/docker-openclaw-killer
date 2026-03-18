@@ -1,199 +1,131 @@
 # Docker OpenClaw Killer
 
-面向 macOS / Linux 的 OpenClaw Docker 清理脚本，目标是“尽量彻底”而不是“盲目全删”。
+面向 macOS / Linux 环境的 OpenClaw Docker 专属安全清理工具。
 
-它会按较窄的匹配规则扫描并清理 OpenClaw 相关的 Docker 容器、卷、网络，并可选清理镜像；同时对本地目录删除做额外路径校验，避免误删非 OpenClaw 数据。
+## 设计目标与核心特性
 
-## 设计目标
+* **核心目标**：实现针对性、彻底的清理，绝不盲目删除无关资源。
+* **安全优先**：坚决不使用破坏性强的 `docker system prune` 命令。
+* **自我保护**：脚本执行完毕后不会进行自删除操作，方便重复调用。
+* **镜像保护**：默认状态下绝不触碰镜像文件，必须显式附加 `--remove-images` 参数才会执行镜像清理。
+* **预演机制**：全面支持 `--dry-run` 模式，在真实执行前无损预览清理计划，不产生任何破坏。
+* **防误删机制**：执行前必须经过计划确认环节，并对本地目录实施极其严格的路径校验。
+* **闭环验证**：清理结束后自动启动验证程序，一旦发现残留或错误即返回非零错误码。
 
-- 默认安全优先，不执行 `docker system prune`
-- 不自删除脚本
-- 默认不删除镜像，只有显式传入 `--remove-images` 才会处理
-- 支持 `--dry-run` 预演
-- 执行前展示清理计划，并在非 `--yes` 模式下要求确认
-- 执行后进行验证，验证失败时返回非零退出码
+## 严格的清理范围
 
-## 清理范围
+* **容器资源**：独立扫描并清理符合规则的 OpenClaw 容器，不依赖容器反推。
+* **镜像资源**：配合特定参数独立扫描并清理相关的 Docker 镜像（仍被占用的镜像会被自动跳过）。
+* **数据卷**：独立扫描并清理挂载的冗余数据卷，有效发现并清除孤立卷（仍被占用的卷会被自动跳过）。
+* **网络设置**：独立扫描并清理专属的自定义网络配置（仍被占用的网络会被自动跳过）。
+* **本地目录**：默认清理目标设定为 `~/openclaw`，且必须同时满足以下所有安全条件才会执行删除：
+    * 目标路径在系统中必须真实存在。
+    * 解析后的绝对路径必须严格位于当前用户的 `$HOME` 目录层级之下。
+    * 目标路径绝对不能是根目录 `/` 或用户主目录 `$HOME`。
+    * 目标目录的名称字符串中必须明确包含 `openclaw` 字样。
 
-脚本会独立扫描以下资源，而不是只依赖容器反推，因此可以发现孤立资源：
+## 安全的默认匹配规则
 
-- 容器
-- 镜像，需配合 `--remove-images`
-- 数据卷
-- 网络
-- 本地目录，默认目标为 `~/openclaw`
+* **容器/数据卷/网络匹配**：默认采用收紧的正则表达式，避免误伤。
+    ```text
+    ^openclaw([._-].+)?$
+    ```
+* **镜像引用匹配**：默认采用收紧的正则表达式限制镜像层级。
+    ```text
+    (^|.*/)openclaw([._-].+)?(:[^/]+)?$
+    ```
 
-本地目录只有在满足以下条件时才会被删除：
+## 环境依赖要求
 
-- 路径真实存在
-- 解析后的真实路径位于 `$HOME` 下
-- 路径不是 `/` 或 `$HOME`
-- 目录名中包含 `openclaw`
+* **核心组件**：操作系统中必须已成功安装 `docker` 命令行工具。
+* **服务状态**：Docker daemon 后台服务必须处于正常运行状态。
+* **执行权限**：当前执行脚本的用户必须具备调用相关 Docker 命令的充足权限。
 
-如果目录不满足这些条件，脚本会拒绝删除并给出警告。
+## 快速使用说明
 
-## 默认匹配规则
+### 方式一：直接远程执行
 
-默认规则故意收紧，避免把名称里“碰巧包含 openclaw”的其他资源一并删除。
+* **适用场景**：快速预览或执行标准清理。
+* **执行指令**：
+    ```bash
+    curl -fsSL "[https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh](https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s -- --dry-run
+    
+    curl -fsSL "[https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh](https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s --
+    ```
 
-```text
-容器 / 卷 / 网络名称:
-^openclaw([._-].+)?$
+### 方式二：下载后本地执行
 
-镜像引用:
-(^|.*/)openclaw([._-].+)?(:[^/]+)?$
-```
+* **适用场景**：需要反复使用或修改执行参数。
+* **执行指令**：
+    ```bash
+    curl -fsSLo docker-openclaw-killer.sh "[https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh](https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)"
+    
+    chmod +x ./docker-openclaw-killer.sh
+    
+    ./docker-openclaw-killer.sh --dry-run
+    
+    ./docker-openclaw-killer.sh
+    ```
 
-如果你的命名规则不同，可以通过环境变量覆盖：
+### 方式三：克隆仓库执行
 
-```bash
-OPENCLAW_NAME_REGEX='^my-openclaw-.*$' \
-OPENCLAW_IMAGE_REGEX='(^|.*/)my-openclaw(:.*)?$' \
-./docker-openclaw-killer.safe.sh --dry-run
-```
+* **适用场景**：获取完整项目文件用于二次开发或审计。
+* **执行指令**：
+    ```bash
+    git clone [https://github.com/xcivets/docker-openclaw-killer.git](https://github.com/xcivets/docker-openclaw-killer.git)
+    
+    cd docker-openclaw-killer
+    
+    chmod +x ./docker-openclaw-killer.sh
+    
+    ./docker-openclaw-killer.sh --dry-run
+    ```
 
-## 依赖要求
+## 高级执行示例
 
-- 已安装 `docker`
-- Docker daemon 正在运行
-- 当前用户有权限执行相关 Docker 命令
+* **连同镜像一并清理**：
+    ```bash
+    ./docker-openclaw-killer.sh --remove-images
+    ```
+* **跳过本地目录的删除动作**：
+    ```bash
+    ./docker-openclaw-killer.sh --keep-dir
+    ```
+* **跳过所有的交互式确认提示**：
+    ```bash
+    ./docker-openclaw-killer.sh --yes
+    ```
+* **深度清理所有内容并强制跳过确认**：
+    ```bash
+    ./docker-openclaw-killer.sh --remove-images --yes
+    ```
+* **通过环境变量指定自定义本地目录进行清理**：
+    ```bash
+    OPENCLAW_DIR="$HOME/openclaw-data" ./docker-openclaw-killer.sh
+    ```
 
-## 从 GitHub 远程使用
+## 命令行参数一览
 
-项目仓库：
+* `-n`, `--dry-run`：启动预演模式，仅在终端打印将要执行的动作清单，不执行真正的删除指令。
+* `-y`, `--yes`：静默模式，直接跳过执行前的用户 `[y/N]` 交互确认提示。
+* `--remove-images`：扩展清理范围，授权脚本删除匹配到的所有 OpenClaw 镜像。
+* `--keep-dir`：目录保护模式，强制保留本地目录，忽略针对本地文件系统的删除操作。
+* `-h`, `--help`：在终端输出该工具的详细帮助与参数说明信息。
 
-```text
-https://github.com/xcivets/docker-openclaw-killer
-```
+## 环境变量覆盖机制
 
-默认分支已确认是 `main`。
+* `OPENCLAW_DIR`：用于指定需要被删除的本地目录路径，若未配置则系统默认值为 `~/openclaw`。
+* `OPENCLAW_NAME_REGEX`：用于重新定义容器、数据卷、网络的正则匹配规则，满足企业级自定义命名规范。
+* `OPENCLAW_IMAGE_REGEX`：用于重新定义镜像引用的正则匹配规则，支持特定仓库源的精细化匹配。
 
-如果 `docker-openclaw-killer.sh` 已经提交到仓库根目录的 `main` 分支，可以通过 Raw 地址直接拉取。
+## 运行流程与退出码验证
 
-先定义脚本的 Raw 地址：
-
-```bash
-RAW_URL="https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh"
-```
-
-直接远程执行：
-
-```bash
-curl -fsSL "$RAW_URL" | bash -s -- --dry-run
-curl -fsSL "$RAW_URL" | bash -s --
-```
-
-更稳妥的方式是先下载到本地，再执行：
-
-```bash
-curl -fsSLo docker-openclaw-killer.sh "$RAW_URL"
-chmod +x ./docker-openclaw-killer.sh
-./docker-openclaw-killer.sh --dry-run
-./docker-openclaw-killer.sh
-```
-
-如果你提供的是完整仓库而不是单文件 Raw 地址，也可以直接克隆：
-
-```bash
-git clone https://github.com/xcivets/docker-openclaw-killer.git
-cd docker-openclaw-killer
-chmod +x ./docker-openclaw-killer.sh
-./docker-openclaw-killer.sh --dry-run
-```
-
-说明：
-
-- 远程直跑本质上是执行网络拉取的脚本，建议至少先执行一次 `--dry-run`
-- 如果仓库里当前还没有 `docker-openclaw-killer.sh`，Raw 方式会失败；这时请先用 `git clone` 或先把脚本推送到 `main`
-
-## 本地使用
-
-先预演，再执行真实清理。
-
-```bash
-chmod +x ./docker-openclaw-killer.sh
-./docker-openclaw-killer.sh --dry-run
-./docker-openclaw-killer.sh
-```
-
-如果你确认要连镜像一起清理：
-
-```bash
-./docker-openclaw-killer.sh --remove-images
-```
-
-如果你希望跳过本地目录删除：
-
-```bash
-./docker-openclaw-killer.sh --keep-dir
-```
-
-如果你已经检查过清理计划，想跳过交互确认：
-
-```bash
-./docker-openclaw-killer.sh --yes
-```
-
-## 命令行参数
-
-- `-n`, `--dry-run`：仅展示将要执行的删除动作，不做任何修改
-- `-y`, `--yes`：跳过确认提示
-- `--remove-images`：删除匹配到的 OpenClaw 镜像
-- `--keep-dir`：保留本地目录，不执行目录删除
-- `-h`, `--help`：显示帮助
-
-## 环境变量
-
-- `OPENCLAW_DIR`：要删除的本地目录，默认 `~/openclaw`
-- `OPENCLAW_NAME_REGEX`：容器、卷、网络名称匹配规则
-- `OPENCLAW_IMAGE_REGEX`：镜像引用匹配规则
-
-## 运行流程
-
-1. 检查 Docker CLI 和 daemon 是否可用
-2. 扫描匹配到的容器、镜像、卷、网络
-3. 校验本地目录是否满足安全删除条件
-4. 打印清理计划
-5. 用户确认后执行删除
-6. 重新扫描资源做验证
-7. 根据验证结果返回退出码
-
-## 验证与退出码
-
-- 返回 `0`：清理完成且验证通过；或者没有匹配到任何资源；或者只是执行了 `--dry-run`
-- 返回非 `0`：Docker 不可用、用户取消、删除过程报错，或验证阶段仍发现残留资源
-
-这使脚本适合被 CI、运维脚本或其他自动化任务调用。
-
-## 重要说明
-
-- 脚本不会执行全局 Docker 垃圾清理
-- 脚本不会删除自身
-- 脚本默认不会删除镜像
-- 脚本会跳过仍被容器占用的镜像、卷或网络，并在输出中提示原因
-
-## 示例
-
-仅预览：
-
-```bash
-./docker-openclaw-killer.sh --dry-run
-```
-
-清理容器、卷、网络和本地目录：
-
-```bash
-./docker-openclaw-killer.sh
-```
-
-清理容器、镜像、卷、网络和本地目录，并跳过确认：
-
-```bash
-./docker-openclaw-killer.sh --remove-images --yes
-```
-
-指定自定义目录但仍保留安全校验：
-
-```bash
-OPENCLAW_DIR="$HOME/openclaw-data" ./docker-openclaw-killer.sh
-```
+* **步骤 1**：严格检查当前 Docker CLI 客户端和后台 daemon 服务的连通性与可用性。
+* **步骤 2**：依据设定的正则规则，深度扫描并汇总容器、镜像、数据卷以及网络资源。
+* **步骤 3**：对传入的本地目录进行真实性、归属性等多重路径校验，判别安全删除条件。
+* **步骤 4**：在终端向用户结构化地打印将被清理的详细资源计划列表。
+* **步骤 5**：等待并获取用户的显式确认后，开始按顺序逐一调用移除命令。
+* **步骤 6**：清理环节结束后，触发二次扫描机制，对上述所有类别进行残留状态验证。
+* **步骤 7**：依据验证结果向系统返回退出状态码：
+    * **返回 `0`**：表示清理完成且验证通过，或者没有匹配到任何资源，或者仅执行了 `--dry-run` 预演。
+    * **返回非 `0`**：表示 Docker 环境不可用、用户主动取消操作、删除执行过程中抛出异常，或在二次验证阶段依然发现相关资源残留。
