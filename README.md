@@ -49,7 +49,9 @@
 * **执行指令**：
     ```bash
     curl -fsSL "(https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s -- --dry-run
-    
+    ```
+        
+    ```bash
     curl -fsSL "(https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s --
     ```
 
