@@ -1,63 +1,151 @@
-### README.md
+# Docker OpenClaw Killer Safe
 
-# Docker OpenClaw Killer
+面向 macOS / Linux 的 OpenClaw Docker 清理脚本，目标是“尽量彻底”而不是“盲目全删”。
 
-macOS 环境下基于 Docker 的 OpenClaw 完美一键卸载与彻底清理工具。具备用后即焚的自我销毁功能。
+它会按较窄的匹配规则扫描并清理 OpenClaw 相关的 Docker 容器、卷、网络，并可选清理镜像；同时对本地目录删除做额外路径校验，避免误删非 OpenClaw 数据。
 
-## 核心功能要点
+## 设计目标
 
-* **强制停止并删除容器**：精准匹配并移除所有包含 openclaw 标识的活动或停止状态的 Docker 容器。
-* **彻底清除镜像文件**：强制检索并删除本地所有的 OpenClaw Docker 镜像。
-* **清理冗余数据卷**：识别并永久销毁 OpenClaw 运行时产生的所有关联 Docker 数据卷。
-* **深度网络与缓存清理**：执行全局网络修剪，并清理未使用的系统缓存与悬空资源，释放磁盘空间。
-* **擦除本地映射目录**：强制删除位于 macOS 用户主目录下的 `~/openclaw` 本地映射文件夹及其所有内容。
-* **自动化双重验证**：在卸载流程结束后自动触发验证机制，遍历检查容器、镜像、数据卷、网络和本地目录，确保达成完美卸载。
-* **无痕自我销毁**：脚本在执行完所有清理和验证任务后，会自动从系统中彻底删除自身文件，用完即走，不留任何痕迹（兼容本地运行与远程拉取模式）。
+- 默认安全优先，不执行 `docker system prune`
+- 不自删除脚本
+- 默认不删除镜像，只有显式传入 `--remove-images` 才会处理
+- 支持 `--dry-run` 预演
+- 执行前展示清理计划，并在非 `--yes` 模式下要求确认
+- 执行后进行验证，验证失败时返回非零退出码
 
-## 方法一： 远程一键运行
+## 清理范围
 
-在 macOS 终端中直接执行以下命令，即可从远程拉取并立即执行清理脚本：
+脚本会独立扫描以下资源，而不是只依赖容器反推，因此可以发现孤立资源：
 
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)"
+- 容器
+- 镜像，需配合 `--remove-images`
+- 数据卷
+- 网络
+- 本地目录，默认目标为 `~/openclaw`
+
+本地目录只有在满足以下条件时才会被删除：
+
+- 路径真实存在
+- 解析后的真实路径位于 `$HOME` 下
+- 路径不是 `/` 或 `$HOME`
+- 目录名中包含 `openclaw`
+
+如果目录不满足这些条件，脚本会拒绝删除并给出警告。
+
+## 默认匹配规则
+
+默认规则故意收紧，避免把名称里“碰巧包含 openclaw”的其他资源一并删除。
+
+```text
+容器 / 卷 / 网络名称:
+^openclaw([._-].+)?$
+
+镜像引用:
+(^|.*/)openclaw([._-].+)?(:[^/]+)?$
 ```
 
-## 方法二： 本地部署与运行
-
-如果你希望将脚本下载到本地执行，请按以下步骤操作：
+如果你的命名规则不同，可以通过环境变量覆盖：
 
 ```bash
-git clone https://github.com/xcivets/docker-openclaw-killer
+OPENCLAW_NAME_REGEX='^my-openclaw-.*$' \
+OPENCLAW_IMAGE_REGEX='(^|.*/)my-openclaw(:.*)?$' \
+./docker-openclaw-killer.safe.sh --dry-run
 ```
+
+## 依赖要求
+
+- 已安装 `docker`
+- Docker daemon 正在运行
+- 当前用户有权限执行相关 Docker 命令
+
+## 使用方式
+
+先预演，再执行真实清理。
 
 ```bash
-cd docker-openclaw-killer
+chmod +x ./docker-openclaw-killer.safe.sh
+./docker-openclaw-killer.safe.sh --dry-run
+./docker-openclaw-killer.safe.sh
 ```
+
+如果你确认要连镜像一起清理：
 
 ```bash
-chmod +x docker-openclaw-killer.sh
+./docker-openclaw-killer.safe.sh --remove-images
 ```
+
+如果你希望跳过本地目录删除：
 
 ```bash
-./docker-openclaw-killer.sh
+./docker-openclaw-killer.safe.sh --keep-dir
 ```
 
-## 方法三： 本地快速下载与运行（curl -O 模式）
-
-如果你希望先将脚本下载到本地当前目录，然后再执行（执行完毕后脚本依然会自动销毁），请依次运行以下命令：
+如果你已经检查过清理计划，想跳过交互确认：
 
 ```bash
-curl -O https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh
+./docker-openclaw-killer.safe.sh --yes
 ```
+
+## 命令行参数
+
+- `-n`, `--dry-run`：仅展示将要执行的删除动作，不做任何修改
+- `-y`, `--yes`：跳过确认提示
+- `--remove-images`：删除匹配到的 OpenClaw 镜像
+- `--keep-dir`：保留本地目录，不执行目录删除
+- `-h`, `--help`：显示帮助
+
+## 环境变量
+
+- `OPENCLAW_DIR`：要删除的本地目录，默认 `~/openclaw`
+- `OPENCLAW_NAME_REGEX`：容器、卷、网络名称匹配规则
+- `OPENCLAW_IMAGE_REGEX`：镜像引用匹配规则
+
+## 运行流程
+
+1. 检查 Docker CLI 和 daemon 是否可用
+2. 扫描匹配到的容器、镜像、卷、网络
+3. 校验本地目录是否满足安全删除条件
+4. 打印清理计划
+5. 用户确认后执行删除
+6. 重新扫描资源做验证
+7. 根据验证结果返回退出码
+
+## 验证与退出码
+
+- 返回 `0`：清理完成且验证通过；或者没有匹配到任何资源；或者只是执行了 `--dry-run`
+- 返回非 `0`：Docker 不可用、用户取消、删除过程报错，或验证阶段仍发现残留资源
+
+这使脚本适合被 CI、运维脚本或其他自动化任务调用。
+
+## 重要说明
+
+- 脚本不会执行全局 Docker 垃圾清理
+- 脚本不会删除自身
+- 脚本默认不会删除镜像
+- 脚本会跳过仍被容器占用的镜像、卷或网络，并在输出中提示原因
+
+## 示例
+
+仅预览：
 
 ```bash
-chmod +x docker-openclaw-killer.sh
+./docker-openclaw-killer.safe.sh --dry-run
 ```
+
+清理容器、卷、网络和本地目录：
 
 ```bash
-./docker-openclaw-killer.sh
+./docker-openclaw-killer.safe.sh
 ```
 
-## 验证说明
+清理容器、镜像、卷、网络和本地目录，并跳过确认：
 
-脚本运行进入尾声时会打印 `Starting Verification...`。如果卸载操作完美且彻底，在此提示词与最终的 `Process Completed. Initiating self-destruct...` 之间将不会输出任何包含 openclaw 的 Docker 资源信息。针对本地目录的检查如果返回文件或目录不存在的提示，即代表本地文件已成功擦除。执行完毕后，当前目录下的 `.sh` 脚本文件将被自动销毁。
+```bash
+./docker-openclaw-killer.safe.sh --remove-images --yes
+```
+
+指定自定义目录但仍保留安全校验：
+
+```bash
+OPENCLAW_DIR="$HOME/openclaw-data" ./docker-openclaw-killer.safe.sh
+```
