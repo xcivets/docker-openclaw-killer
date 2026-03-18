@@ -58,7 +58,55 @@ OPENCLAW_IMAGE_REGEX='(^|.*/)my-openclaw(:.*)?$' \
 - Docker daemon 正在运行
 - 当前用户有权限执行相关 Docker 命令
 
-## 使用方式
+## 从 GitHub 远程使用
+
+项目仓库：
+
+```text
+https://github.com/xcivets/docker-openclaw-killer
+```
+
+默认分支已确认是 `main`。
+
+如果 `docker-openclaw-killer.safe.sh` 已经提交到仓库根目录的 `main` 分支，可以通过 Raw 地址直接拉取。
+
+先定义脚本的 Raw 地址：
+
+```bash
+RAW_URL="https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.safe.sh"
+```
+
+直接远程执行：
+
+```bash
+curl -fsSL "$RAW_URL" | bash -s -- --dry-run
+curl -fsSL "$RAW_URL" | bash -s --
+```
+
+更稳妥的方式是先下载到本地，再执行：
+
+```bash
+curl -fsSLo docker-openclaw-killer.safe.sh "$RAW_URL"
+chmod +x ./docker-openclaw-killer.safe.sh
+./docker-openclaw-killer.safe.sh --dry-run
+./docker-openclaw-killer.safe.sh
+```
+
+如果你提供的是完整仓库而不是单文件 Raw 地址，也可以直接克隆：
+
+```bash
+git clone https://github.com/xcivets/docker-openclaw-killer.git
+cd docker-openclaw-killer
+chmod +x ./docker-openclaw-killer.safe.sh
+./docker-openclaw-killer.safe.sh --dry-run
+```
+
+说明：
+
+- 远程直跑本质上是执行网络拉取的脚本，建议至少先执行一次 `--dry-run`
+- 如果仓库里当前还没有 `docker-openclaw-killer.safe.sh`，Raw 方式会失败；这时请先用 `git clone` 或先把脚本推送到 `main`
+
+## 本地使用
 
 先预演，再执行真实清理。
 
