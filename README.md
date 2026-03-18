@@ -1,4 +1,4 @@
-# Docker OpenClaw Killer Safe
+# Docker OpenClaw Killer
 
 面向 macOS / Linux 的 OpenClaw Docker 清理脚本，目标是“尽量彻底”而不是“盲目全删”。
 
@@ -68,12 +68,12 @@ https://github.com/xcivets/docker-openclaw-killer
 
 默认分支已确认是 `main`。
 
-如果 `docker-openclaw-killer.safe.sh` 已经提交到仓库根目录的 `main` 分支，可以通过 Raw 地址直接拉取。
+如果 `docker-openclaw-killer.sh` 已经提交到仓库根目录的 `main` 分支，可以通过 Raw 地址直接拉取。
 
 先定义脚本的 Raw 地址：
 
 ```bash
-RAW_URL="https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.safe.sh"
+RAW_URL="https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh"
 ```
 
 直接远程执行：
@@ -86,10 +86,10 @@ curl -fsSL "$RAW_URL" | bash -s --
 更稳妥的方式是先下载到本地，再执行：
 
 ```bash
-curl -fsSLo docker-openclaw-killer.safe.sh "$RAW_URL"
-chmod +x ./docker-openclaw-killer.safe.sh
-./docker-openclaw-killer.safe.sh --dry-run
-./docker-openclaw-killer.safe.sh
+curl -fsSLo docker-openclaw-killer.sh "$RAW_URL"
+chmod +x ./docker-openclaw-killer.sh
+./docker-openclaw-killer.sh --dry-run
+./docker-openclaw-killer.sh
 ```
 
 如果你提供的是完整仓库而不是单文件 Raw 地址，也可以直接克隆：
@@ -97,41 +97,41 @@ chmod +x ./docker-openclaw-killer.safe.sh
 ```bash
 git clone https://github.com/xcivets/docker-openclaw-killer.git
 cd docker-openclaw-killer
-chmod +x ./docker-openclaw-killer.safe.sh
-./docker-openclaw-killer.safe.sh --dry-run
+chmod +x ./docker-openclaw-killer.sh
+./docker-openclaw-killer.sh --dry-run
 ```
 
 说明：
 
 - 远程直跑本质上是执行网络拉取的脚本，建议至少先执行一次 `--dry-run`
-- 如果仓库里当前还没有 `docker-openclaw-killer.safe.sh`，Raw 方式会失败；这时请先用 `git clone` 或先把脚本推送到 `main`
+- 如果仓库里当前还没有 `docker-openclaw-killer.sh`，Raw 方式会失败；这时请先用 `git clone` 或先把脚本推送到 `main`
 
 ## 本地使用
 
 先预演，再执行真实清理。
 
 ```bash
-chmod +x ./docker-openclaw-killer.safe.sh
-./docker-openclaw-killer.safe.sh --dry-run
-./docker-openclaw-killer.safe.sh
+chmod +x ./docker-openclaw-killer.sh
+./docker-openclaw-killer.sh --dry-run
+./docker-openclaw-killer.sh
 ```
 
 如果你确认要连镜像一起清理：
 
 ```bash
-./docker-openclaw-killer.safe.sh --remove-images
+./docker-openclaw-killer.sh --remove-images
 ```
 
 如果你希望跳过本地目录删除：
 
 ```bash
-./docker-openclaw-killer.safe.sh --keep-dir
+./docker-openclaw-killer.sh --keep-dir
 ```
 
 如果你已经检查过清理计划，想跳过交互确认：
 
 ```bash
-./docker-openclaw-killer.safe.sh --yes
+./docker-openclaw-killer.sh --yes
 ```
 
 ## 命令行参数
@@ -177,23 +177,23 @@ chmod +x ./docker-openclaw-killer.safe.sh
 仅预览：
 
 ```bash
-./docker-openclaw-killer.safe.sh --dry-run
+./docker-openclaw-killer.sh --dry-run
 ```
 
 清理容器、卷、网络和本地目录：
 
 ```bash
-./docker-openclaw-killer.safe.sh
+./docker-openclaw-killer.sh
 ```
 
 清理容器、镜像、卷、网络和本地目录，并跳过确认：
 
 ```bash
-./docker-openclaw-killer.safe.sh --remove-images --yes
+./docker-openclaw-killer.sh --remove-images --yes
 ```
 
 指定自定义目录但仍保留安全校验：
 
 ```bash
-OPENCLAW_DIR="$HOME/openclaw-data" ./docker-openclaw-killer.safe.sh
+OPENCLAW_DIR="$HOME/openclaw-data" ./docker-openclaw-killer.sh
 ```
