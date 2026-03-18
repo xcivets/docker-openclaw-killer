@@ -48,9 +48,9 @@
 * **适用场景**：快速预览或执行标准清理。
 * **执行指令**：
     ```bash
-    curl -fsSL "[https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh](https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s -- --dry-run
+    curl -fsSL "(https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s -- --dry-run
     
-    curl -fsSL "[https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh](https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s --
+    curl -fsSL "(https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)" | bash -s --
     ```
 
 ### 方式二：下载后本地执行
@@ -58,7 +58,7 @@
 * **适用场景**：需要反复使用或修改执行参数。
 * **执行指令**：
     ```bash
-    curl -fsSLo docker-openclaw-killer.sh "[https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh](https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)"
+    curl -fsSLo docker-openclaw-killer.sh "(https://raw.githubusercontent.com/xcivets/docker-openclaw-killer/main/docker-openclaw-killer.sh)"
     
     chmod +x ./docker-openclaw-killer.sh
     
@@ -72,7 +72,7 @@
 * **适用场景**：获取完整项目文件用于二次开发或审计。
 * **执行指令**：
     ```bash
-    git clone [https://github.com/xcivets/docker-openclaw-killer.git](https://github.com/xcivets/docker-openclaw-killer.git)
+    git clone https://github.com/xcivets/docker-openclaw-killer.git
     
     cd docker-openclaw-killer
     
